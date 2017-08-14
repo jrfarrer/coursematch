@@ -1,6 +1,6 @@
 ---
 title: "CourseMatch Metrics - Fall 2017"
-subtitle: "Data Processing and Googlesheet"
+subtitle: "Data Processing for Google Sheet"
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
   bookdown::html_document2:
@@ -28,7 +28,8 @@ knitr::knit_hooks$set(inline = function(x) {if(!is.numeric(x)){ x }else{ prettyN
 options(scipen = 999, digits = 3)
 
 # Load packages
-pacman::p_load(tidyverse, readxl, stringr, lubridate, googlesheets, rvest, forcats, grid, gridExtra, htmlTable)
+pacman::p_load(tidyverse, readxl, stringr, lubridate, googlesheets, rvest, forcats, 
+               grid, gridExtra, htmlTable, highcharter)
 
 # Token to connect to Googlespreadsheets
 suppressMessages(gs_auth(token = "googlesheets_token.rds", verbose = FALSE))
@@ -43,6 +44,18 @@ ggplot2::theme_set(theme_minimal() +
                 panel.grid.minor.x = element_blank(), 
                 strip.background = element_rect(fill = "grey85", colour = "grey85"),
                 legend.margin=margin(t = -0.3, r = 0, b = -0.4, l=0, unit="cm")))
+
+wharton_col <- c("#004785", "#A90533", "#A262460", "#282F85", "#026CB5", "#06AAFC",
+                 "#532A85","#96227D", "#A8204E","#C5093B","#2D2C41","#D7BC6A",
+                 "#B2B6A7","EEEDEA")
+names(wharton_col) <- c("wharton_blue", 'wharton_red','midnight_blue','atlantic_blue','pacific_blue','bay_blue',
+                        'evening_red','sunset_red','brick_red','heritage_red','night_stree','morning_yellow',
+                        'college_grey','marine_grey')
+
+hcoptslang <- getOption("highcharter.lang")
+hcoptslang$thousandsSep <- ","
+hcoptslang$numericSymbols <- c("k", "M", "B", "T", "P", "E")
+options(highcharter.lang = hcoptslang)
 ```
 
 ## tl;dr
@@ -445,7 +458,7 @@ instructor_benchmark <-
 
 We then use the [googlesheets](https://cran.r-project.org/web/packages/googlesheets/) package to add them to the [Google Sheet](https://docs.google.com/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/edit#gid=0)
 
-<iframe src="https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/pubhtml?widget=true&amp;headers=false" frameborder="0" width="900" height="650" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+<iframe src="https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/pubhtml?widget=true&amp;headers=false" frameborder="0" width="800" height="650" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
 
 
 ```{r update_google_sheet}
@@ -463,6 +476,8 @@ if (params$external_queries) {
 ```
 
 # Exploratory Analysis
+
+## Evaluations by Department
 
 ```{r course_summary}
 course_summary <- 
@@ -485,7 +500,6 @@ dept_summary <-
   ungroup() 
 ```
 
-
 ```{r fn_spline_plot}
 fn_spline_plot <- function(data) {
   p <-
@@ -493,21 +507,21 @@ fn_spline_plot <- function(data) {
   ggplot(aes(x = fct_reorder(Dept, wght_avg) , y = wght_avg, ymin = 1, ymax = wght_avg)) +
   facet_wrap(~question_abbr, scale = 'free_x') +
   geom_hline(data = . %>% select(-wght_avg) %>% distinct(), aes(yintercept = question_avg),
-             linetype = "dashed", colour = "grey50") +
-  geom_linerange() +
+             linetype = "dashed", colour =  wharton_col[['wharton_red']]) +
+  geom_linerange(colour = wharton_col[['wharton_blue']]) +
   coord_flip() +
   labs(x = NULL, y = NULL) +
   theme(panel.grid = element_blank()) +
   scale_y_continuous(expand = c(0.0, 0.01), limits = c(1, 3.5)) +
-  geom_point() +
+  geom_point(colour = wharton_col[['wharton_blue']]) +
   geom_text(aes(label = scales::comma(wght_avg, digits = 3)), hjust = -0.15) +
   geom_text(data = . %>% filter(wght_avg == min(wght_avg)), 
             aes(x = Dept, y = question_avg, 
-                label = paste0("Avg: ",  scales::comma(wght_avg, digits = 3))), hjust = -0.05)
+                label = paste0("Avg: ",  scales::comma(wght_avg, digits = 3))), hjust = -0.05,
+            colour =  wharton_col[['wharton_red']])
   return(ggplotGrob(p))
 }  
 ```
-
 
 ```{r dept_plots}
 dept_plots <-
@@ -526,7 +540,7 @@ dept_plots %>%
                                hjust=1, x=1))
 ```
 
-```{r instructor-dept-plots}
+```{r instructor-dept-plots, fig.width = 6, fig.height = 5.25}
 dept_plots %>%
   filter(question_type == "Instructor") %>%
   pull(plot) %>%
@@ -536,12 +550,95 @@ dept_plots %>%
                                hjust=1.01, x=1))
 ```    
 
+## Which course is the "best bang for your utility"?
 
+```{r course_quality_to_price}
+course_quality_to_price <-
+  course_metrics %>%
+  distinct(Course, `Course Quality`, Title, clearing_price) %>%
+  mutate(title_length = length(Title)) %>%
+  arrange(Course, title_length) %>%
+  group_by(Course) %>%
+  filter(row_number() == 1) %>%
+  ungroup() %>%
+  mutate(dept = str_sub(Course, 1, 4)) %>%
+  rename(quality = `Course Quality`) %>% 
+  filter(complete.cases(.))
 
-# Which course is the "best bang for your utility"?
+course_quality_to_price %>%
+  hchart("scatter", hcaes(x = clearing_price, y = quality, group = dept, course = Course,
+                          title = Title)) %>%
+  hc_tooltip(pointFormat = "<span style=\"color:{series.color}\">{point.course}</span>:{point.title}<br/>
+              Clearing Price: <b>{point.x:,.1f}</b><br/>
+              Course Quality: <b>{point.y:,.2f}</b><br/>",
+             shared = TRUE) %>%
+  hc_xAxis(title = list(text = "Average Clearing Price")) %>%
+  hc_yAxis(title = list(text = "Average Course Quality")) %>%
+  hc_title(text = 'Which course is the "best bang for your utility"?') %>%
+  hc_subtitle(text = "Value courses are in the top left corner") %>%
+  hc_credits(enabled = TRUE, text = "Source: Spring 2016 to Spring 2017") %>%
+  hc_add_theme(hc_theme_merge(
+    getOption("highcharter.theme"), 
+    hc_theme(colors = wharton_col[c('wharton_blue','wharton_red','bay_blue','morning_yellow','college_gray',
+                                    'evening_red','sunset_red','night_street','marine_grey','heritage_red')] %>% unname()))) %>%
+  hc_size(height = 700)
+```
 
-# Most improved professors?
+## Top 10 and Bottom 10 Instructors for Fall 2017?
 
-# Top 10 and Bottom 10 Professors?
+```{r top_bottom_instructors}
+instructor_metrics %>% 
+  arrange(desc(`Instructor Quality`)) %>%
+  mutate(
+    rnk = row_number()
+    , `Instructor Quality` = formatC(`Instructor Quality`, format = 'f', digits = 2)
+  ) %>%
+  head(10) %>%
+  select(rnk, instructors, `Instructor Quality`) %>%
+  left_join(
+    instructor_metrics %>% 
+    arrange(`Instructor Quality`) %>%
+    mutate(
+    rnk = row_number()
+    , `Instructor Quality` = formatC(`Instructor Quality`, format = 'f', digits = 2)
+    ) %>%
+    head(10) %>%
+    select(rnk, instructors, `Instructor Quality`)
+    , by = 'rnk'
+  ) %>%
+  htmlTable(
+    rnames = FALSE
+    , caption = "Top 10 and Bottom 10 Instructors for Fall 2017"
+    , align = c("clclc")
+    , col.rgroup = c("none", "#F7F7F7")
+    , cgroup = c("", "Top 10", "Bottom 10")
+    , n.cgroup = c(1,2,2)
+    , header = c("Rank", rep(c("Instructor", "Quality"), 2))
+    , css.cell = "padding-left: 2em; padding-right: 2em;"
+  ) #%>% htmltools::html_print()
 
-# Number of Course Offerrings by Department
+```
+
+## Number of Course Offerrings by Department
+
+```{r course_offerings}
+course_metrics %>%
+  mutate(dept = str_sub(Course, 1, 4)) %>%
+  group_by(dept) %>%
+  summarise(
+    Courses = n_distinct(Course)
+    , Sections = n()
+  ) %>%
+  gather(metric, value, -dept) %>%
+  hchart("column", hcaes(x = dept, y = value, group = metric)) %>%
+  hc_xAxis(title = list(text = "Department")) %>%
+  hc_yAxis(title = list(text = "Count")) %>%
+  hc_title(text = 'Do some department offer more coures?') %>%
+  hc_subtitle(text = "MGMT and FNCE dominate in number of course offerrings") %>%
+  hc_credits(enabled = TRUE, text = "Note: Cross-listing is counted for each department") %>%
+  hc_add_theme(hc_theme_merge(
+    getOption("highcharter.theme"), 
+    hc_theme(colors = wharton_col[c('wharton_blue','wharton_red')] %>% unname()))) %>%
+  hc_size(height = 600)
+```
+
