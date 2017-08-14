@@ -455,7 +455,7 @@ instructor_benchmark <-
 
 ## Export to Google Sheet
 
-We then use the [googlesheets](https://cran.r-project.org/web/packages/googlesheets/) package to add them to the [Google Sheet]https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/edit?usp=sharing)
+We then use the [googlesheets](https://cran.r-project.org/web/packages/googlesheets/) package to add them to the [Google Sheet](https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/edit?usp=sharing)
 
 <iframe src="https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/pubhtml?widget=true&amp;headers=false" frameborder="0" width="800" height="650" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
 
