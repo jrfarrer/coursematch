@@ -60,9 +60,8 @@ options(highcharter.lang = hcoptslang)
 
 ## tl;dr
 
-1. 
-2. 
-3. 
+1. This notebook documents how we built the [Google Sheet](https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/edit?usp=sharing) with course and instructor evaluations and clearing prices
+2. There some basic exploratory plots at the end
 
 # Disclaimer
 
@@ -456,7 +455,7 @@ instructor_benchmark <-
 
 ## Export to Google Sheet
 
-We then use the [googlesheets](https://cran.r-project.org/web/packages/googlesheets/) package to add them to the [Google Sheet](https://docs.google.com/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/edit#gid=0)
+We then use the [googlesheets](https://cran.r-project.org/web/packages/googlesheets/) package to add them to the [Google Sheet]https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/edit?usp=sharing)
 
 <iframe src="https://docs.google.com/a/wharton.upenn.edu/spreadsheets/d/14B-k2iBTgRl5T6d8-3y__2Jz4AlHctoovbNFZQnAFzg/pubhtml?widget=true&amp;headers=false" frameborder="0" width="800" height="650" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
 
@@ -476,6 +475,8 @@ if (params$external_queries) {
 ```
 
 # Exploratory Analysis
+
+We figured we'd explore the data bit. Here are a few plots we built. To a do a real analysis, we would need response level data. In practice, we would want to built to confidence intervals to detect where the differences in response are significant before making any comparative statements. We only have the point estimate (mean) and not the standard error so we cannot do anything more sophisicated.
 
 ## Evaluations by Department
 
@@ -517,7 +518,7 @@ fn_spline_plot <- function(data) {
   geom_text(aes(label = scales::comma(wght_avg, digits = 3)), hjust = -0.15) +
   geom_text(data = . %>% filter(wght_avg == min(wght_avg)), 
             aes(x = Dept, y = question_avg, 
-                label = paste0("Avg: ",  scales::comma(wght_avg, digits = 3))), hjust = -0.05,
+                label = paste0("Avg: ",  scales::comma(wght_avg, digits = 2))), hjust = -0.05,
             colour =  wharton_col[['wharton_red']])
   return(ggplotGrob(p))
 }  
@@ -531,6 +532,8 @@ dept_plots <-
   mutate(plot = map(data, fn_spline_plot))
 ```
 
+OIDD and REAL are consistently the top of each of the course metrics. It would be unsurprising to find that the responses to each question are correlated at the user-level.
+
 ```{r course-dept-plots}
 dept_plots %>%
   filter(question_type == "Course") %>%
@@ -539,6 +542,8 @@ dept_plots %>%
                                gp = gpar(fontsize=10),
                                hjust=1, x=1))
 ```
+
+For instructor metrics, OIDD is again the top and STAT and BEPP are again the bottom. 
 
 ```{r instructor-dept-plots, fig.width = 6, fig.height = 5.25}
 dept_plots %>%
@@ -551,6 +556,8 @@ dept_plots %>%
 ```    
 
 ## Which course is the "best bang for your utility"?
+
+The plot below help answer what has historically been the best value (course quality) for your utility. There are many courses that have never had non-zero clearing prices.
 
 ```{r course_quality_to_price}
 course_quality_to_price <-
@@ -585,6 +592,8 @@ course_quality_to_price %>%
 ```
 
 ## Top 10 and Bottom 10 Instructors for Fall 2017?
+
+This list is restricted to those teaching in the fall.
 
 ```{r top_bottom_instructors}
 instructor_metrics %>% 
