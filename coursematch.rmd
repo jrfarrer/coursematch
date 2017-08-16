@@ -49,7 +49,7 @@ wharton_col <- c("#004785", "#A90533", "#A262460", "#282F85", "#026CB5", "#06AAF
                  "#532A85","#96227D", "#A8204E","#C5093B","#2D2C41","#D7BC6A",
                  "#B2B6A7","EEEDEA")
 names(wharton_col) <- c("wharton_blue", 'wharton_red','midnight_blue','atlantic_blue','pacific_blue','bay_blue',
-                        'evening_red','sunset_red','brick_red','heritage_red','night_stree','morning_yellow',
+                        'evening_red','sunset_red','brick_red','heritage_red','night_street','morning_yellow',
                         'college_grey','marine_grey')
 
 hcoptslang <- getOption("highcharter.lang")
@@ -586,7 +586,7 @@ course_quality_to_price %>%
   hc_credits(enabled = TRUE, text = "Source: Spring 2016 to Spring 2017") %>%
   hc_add_theme(hc_theme_merge(
     getOption("highcharter.theme"), 
-    hc_theme(colors = wharton_col[c('wharton_blue','wharton_red','bay_blue','morning_yellow','college_gray',
+    hc_theme(colors = wharton_col[c('wharton_blue','wharton_red','bay_blue','morning_yellow','college_grey',
                                     'evening_red','sunset_red','night_street','marine_grey','heritage_red')] %>% unname()))) %>%
   hc_size(height = 700)
 ```
